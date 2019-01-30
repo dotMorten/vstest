@@ -28,7 +28,7 @@ namespace Microsoft.VisualStudio.TestPlatform.Extensions.TrxLogger
     /// </summary>
     [FriendlyName(TrxLoggerConstants.FriendlyName)]
     [ExtensionUri(TrxLoggerConstants.ExtensionUri)]
-    internal class TrxLogger : ITestLoggerWithParameters
+    public class TrxLogger : ITestLoggerWithParameters
     {
         #region Fields
 
@@ -185,7 +185,7 @@ namespace Microsoft.VisualStudio.TestPlatform.Extensions.TrxLogger
         /// <param name="e">
         /// Event args
         /// </param>
-        public void TestMessageHandler(object sender, TestRunMessageEventArgs e)
+        internal void TestMessageHandler(object sender, TestRunMessageEventArgs e)
         {
             ValidateArg.NotNull<object>(sender, "sender");
             ValidateArg.NotNull<TestRunMessageEventArgs>(e, "e");
@@ -220,7 +220,7 @@ namespace Microsoft.VisualStudio.TestPlatform.Extensions.TrxLogger
         /// <param name="e">
         /// The eventArgs.
         /// </param>
-        public void TestResultHandler(object sender, ObjectModel.Logging.TestResultEventArgs e)
+        internal void TestResultHandler(object sender, ObjectModel.Logging.TestResultEventArgs e)
         {
             // Create test run
             if (this.testRun == null)
@@ -280,7 +280,7 @@ namespace Microsoft.VisualStudio.TestPlatform.Extensions.TrxLogger
         /// <param name="e">
         /// Test run complete events arguments.
         /// </param>
-        public void TestRunCompleteHandler(object sender, TestRunCompleteEventArgs e)
+        internal void TestRunCompleteHandler(object sender, TestRunCompleteEventArgs e)
         {
             // Create test run
             // If abort occurs there is no call to TestResultHandler which results in testRun not created.
@@ -441,17 +441,13 @@ namespace Microsoft.VisualStudio.TestPlatform.Extensions.TrxLogger
 
         private void DeriveTrxFilePath()
         {
-            if (this.parametersDictionary != null)
+            if (this.parametersDictionary != null &&
+                this.parametersDictionary.TryGetValue(TrxLoggerConstants.LogFileNameKey, out string logFileNameValue) &&
+                !string.IsNullOrWhiteSpace(logFileNameValue))
             {
-                var isLogFileNameParameterExists = this.parametersDictionary.TryGetValue(TrxLoggerConstants.LogFileNameKey, out string logFileNameValue);
-                if (isLogFileNameParameterExists && !string.IsNullOrWhiteSpace(logFileNameValue))
-                {
-                    this.trxFilePath = Path.Combine(this.testResultsDirPath, logFileNameValue);
-                }
-                else
-                {
-                    this.SetDefaultTrxFilePath();
-                }
+                string logFileNameWithoutExt = Path.GetFileNameWithoutExtension(logFileNameValue);
+                logFileNameValue = logFileNameValue.Replace(logFileNameWithoutExt, logFileNameWithoutExt + DateTime.Now.ToString("_yyyy-MM-dd_HH-mm-ss-fff", DateTimeFormatInfo.InvariantInfo));
+                this.trxFilePath = Path.Combine(this.testResultsDirPath, logFileNameValue);
             }
             else
             {
